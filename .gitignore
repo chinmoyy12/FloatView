@@ -1,0 +1,19 @@
+## Visual Studio / .NET
+[Bb]in/
+[Oo]bj/
+[Pp]ublish/
+installer/output/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+
+## Build & OS
+*.log
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.tmp

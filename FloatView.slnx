@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/FloatView.App/FloatView.App.csproj" />
+  <Project Path="tests/FloatView.Tests/FloatView.Tests.csproj" />
+</Solution>

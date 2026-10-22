@@ -1,0 +1,260 @@
+<UserControl x:Class="FloatView.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,12,0">
+        <StackPanel>
+
+            <!-- Section 1: Appearance & UI -->
+            <Border Background="{StaticResource BrushBgCard}"
+                    BorderBrush="{StaticResource BrushBorderSubtle}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Appearance &amp; Window Polish" Style="{StaticResource StyleHeaderMedium}" Margin="0,0,0,12" />
+
+                    <!-- Default Window Opacity -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="200" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Default Window Opacity" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock Text="Initial transparency applied to newly created floating windows." Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                            <Slider x:Name="SliderDefaultOpacity" Style="{StaticResource StyleSlider}" Width="120" Minimum="0.3" Maximum="1.0" Value="0.95" Margin="0,0,8,0" ValueChanged="OnDefaultOpacityChanged" />
+                            <TextBlock x:Name="TxtOpacityValue" Text="95%" Style="{StaticResource StyleCodeText}" Width="40" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Theme Accent -->
+                    <Grid Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Accent Tone" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock Text="Primary highlights, progress meters, and indicator borders." Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Width="22" Height="22" CornerRadius="11" Background="#8B5CF6" Margin="3,0" Cursor="Hand" ToolTip="Modern Violet" MouseLeftButtonDown="OnColorVioletSelected" />
+                            <Border Width="22" Height="22" CornerRadius="11" Background="#3B82F6" Margin="3,0" Cursor="Hand" ToolTip="Electric Blue" MouseLeftButtonDown="OnColorBlueSelected" />
+                            <Border Width="22" Height="22" CornerRadius="11" Background="#10B981" Margin="3,0" Cursor="Hand" ToolTip="Emerald Green" MouseLeftButtonDown="OnColorGreenSelected" />
+                            <Border Width="22" Height="22" CornerRadius="11" Background="#EC4899" Margin="3,0" Cursor="Hand" ToolTip="Neon Pink" MouseLeftButtonDown="OnColorPinkSelected" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Section 2: Floating Window Behavior -->
+            <Border Background="{StaticResource BrushBgCard}"
+                    BorderBrush="{StaticResource BrushBorderSubtle}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Floating Window Engine" Style="{StaticResource StyleHeaderMedium}" Margin="0,0,0,12" />
+
+                    <!-- Max Active Floats -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Maximum Active Floating Windows" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock Text="Prevents system resource overload by capping simultaneous active WebViews (Default: 3)." Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <ComboBox x:Name="CmbMaxFloats" Grid.Column="1" Width="80" SelectionChanged="OnMaxFloatsChanged">
+                            <ComboBoxItem Content="1" />
+                            <ComboBoxItem Content="2" />
+                            <ComboBoxItem Content="3" IsSelected="True" />
+                            <ComboBoxItem Content="4" />
+                            <ComboBoxItem Content="5" />
+                        </ComboBox>
+                    </Grid>
+
+                    <!-- Edge Snapping -->
+                    <Grid Margin="0,6,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Magnetic Edge Snapping" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock Text="Automatically aligns moving windows against monitor edges and adjacent floats." Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <CheckBox x:Name="ChkSnapping" Grid.Column="1" IsChecked="True" VerticalAlignment="Center" Click="OnSnappingToggled" />
+                    </Grid>
+
+                    <!-- Edge Docking & Reveal -->
+                    <Grid Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Screen-Edge Docking &amp; Reveal Strip" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock Text="Enables sliding windows off-screen with quick-hover activation handles." Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <CheckBox x:Name="ChkEdgeDocking" Grid.Column="1" IsChecked="True" VerticalAlignment="Center" Click="OnEdgeDockingToggled" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Section 3: Global Hotkeys & Shortcuts -->
+            <Border Background="{StaticResource BrushBgCard}"
+                    BorderBrush="{StaticResource BrushBorderSubtle}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Global Shortcuts (System-Wide)" Style="{StaticResource StyleHeaderMedium}" />
+                    <TextBlock Text="Operate FloatView controls without leaving your current IDE or game." Style="{StaticResource StyleCaptionText}" Margin="0,4,0,12" />
+
+                    <Border Background="{StaticResource BrushBgInput}" CornerRadius="8" Padding="12,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Command Palette / Launcher" Style="{StaticResource StyleBodyText}" Margin="0,4" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="Alt + Space" Style="{StaticResource StyleCodeText}" Margin="0,4" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Active" Foreground="{StaticResource BrushSuccess}" Style="{StaticResource StyleCaptionText}" Margin="0,4" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Toggle All Floating Windows" Style="{StaticResource StyleBodyText}" Margin="0,4" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="Ctrl + Alt + F" Style="{StaticResource StyleCodeText}" Margin="0,4" />
+                            <TextBlock Grid.Row="1" Grid.Column="2" Text="Active" Foreground="{StaticResource BrushSuccess}" Style="{StaticResource StyleCaptionText}" Margin="0,4" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Toggle Always-on-Top" Style="{StaticResource StyleBodyText}" Margin="0,4" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="Ctrl + Alt + T" Style="{StaticResource StyleCodeText}" Margin="0,4" />
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="Active" Foreground="{StaticResource BrushSuccess}" Style="{StaticResource StyleCaptionText}" Margin="0,4" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Toggle Mouse Click-Through" Style="{StaticResource StyleBodyText}" Margin="0,4" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="Ctrl + Alt + K" Style="{StaticResource StyleCodeText}" Margin="0,4" />
+                            <TextBlock Grid.Row="3" Grid.Column="2" Text="Active" Foreground="{StaticResource BrushSuccess}" Style="{StaticResource StyleCaptionText}" Margin="0,4" />
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Media Play / Pause Active" Style="{StaticResource StyleBodyText}" Margin="0,4" />
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="Ctrl + Alt + P" Style="{StaticResource StyleCodeText}" Margin="0,4" />
+                            <TextBlock Grid.Row="4" Grid.Column="2" Text="Active" Foreground="{StaticResource BrushSuccess}" Style="{StaticResource StyleCaptionText}" Margin="0,4" />
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Start / Pause Focus Timer" Style="{StaticResource StyleBodyText}" Margin="0,4" />
+                            <TextBlock Grid.Row="5" Grid.Column="1" Text="Ctrl + Alt + O" Style="{StaticResource StyleCodeText}" Margin="0,4" />
+                            <TextBlock Grid.Row="5" Grid.Column="2" Text="Active" Foreground="{StaticResource BrushSuccess}" Style="{StaticResource StyleCaptionText}" Margin="0,4" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- Section 4: Focus Timer Intervals -->
+            <Border Background="{StaticResource BrushBgCard}"
+                    BorderBrush="{StaticResource BrushBorderSubtle}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Focus Session Durations" Style="{StaticResource StyleHeaderMedium}" Margin="0,0,0,12" />
+
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Work Duration (Minutes)" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock Text="Standard focus block length." Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <TextBox x:Name="TxtFocusDuration" Grid.Column="1" Width="70" Style="{StaticResource StyleTextBox}" Text="25" TextChanged="OnFocusDurationChanged" />
+                    </Grid>
+
+                    <Grid Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Break Duration (Minutes)" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock Text="Relaxation interval between work cycles." Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <TextBox x:Name="TxtBreakDuration" Grid.Column="1" Width="70" Style="{StaticResource StyleTextBox}" Text="5" TextChanged="OnBreakDurationChanged" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Section 5: Startup & Maintenance -->
+            <Border Background="{StaticResource BrushBgCard}"
+                    BorderBrush="{StaticResource BrushBorderSubtle}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Windows Integration &amp; Storage Maintenance" Style="{StaticResource StyleHeaderMedium}" Margin="0,0,0,12" />
+
+                    <!-- Run at Windows Startup -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Launch on Windows Startup" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock Text="Automatically start FloatView in the system tray / background." Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <CheckBox x:Name="ChkStartup" Grid.Column="1" VerticalAlignment="Center" Click="OnStartupToggled" />
+                    </Grid>
+
+                    <Separator Background="{StaticResource BrushBorderSubtle}" Margin="0,8" />
+
+                    <!-- Clear Browsing Data & Reset -->
+                    <StackPanel Orientation="Horizontal">
+                        <Button Style="{StaticResource BtnSecondary}" Margin="0,0,12,0" Content="Clear Web Cache &amp; Cookies" Click="OnClearWebCacheClicked" />
+                        <Button Style="{StaticResource BtnSecondary}" Content="Reset All Application Data" Click="OnResetAllDataClicked" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Section 6: About & Diagnostics -->
+            <Border Background="{StaticResource BrushBgElevated}"
+                    BorderBrush="{StaticResource BrushBorderSubtle}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="FloatView — Production Build" Style="{StaticResource StyleHeaderMedium}" />
+                        <TextBlock x:Name="TxtRuntimeInfo" Text="Runtime: .NET 10 LTS | Microsoft Edge WebView2 Evergreen | Win32 Per-Monitor DPI Aware" Style="{StaticResource StyleCaptionText}" Margin="0,4,0,2" />
+                        <TextBlock Text="Architecture: x64 | Windows 10 &amp; 11 Ready" Style="{StaticResource StyleCaptionText}" />
+                    </StackPanel>
+                    <Border Grid.Column="1" Background="{StaticResource BrushAccentSubtle}" CornerRadius="6" Padding="10,6" VerticalAlignment="Center">
+                        <TextBlock Text="LTS PRODUCTION" Style="{StaticResource StyleCodeText}" FontWeight="Bold" />
+                    </Border>
+                </Grid>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
