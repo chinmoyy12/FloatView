@@ -53,6 +53,8 @@ public partial class MainWindow : Window
             });
         };
 
+        SwitchView(ViewDashboard);
+
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;
         Closing += OnClosing;
@@ -197,22 +199,26 @@ public partial class MainWindow : Window
 
     private void OnNavChanged(object sender, RoutedEventArgs e)
     {
-        if (NavDashboard.IsChecked == true) SwitchView(ViewDashboard);
-        else if (NavBrowser.IsChecked == true) SwitchView(ViewBrowser);
-        else if (NavWorkspaces.IsChecked == true) SwitchView(ViewWorkspaces);
-        else if (NavNotes.IsChecked == true) SwitchView(ViewNotes);
-        else if (NavPrivacy.IsChecked == true) SwitchView(ViewPrivacy);
-        else if (NavSettings.IsChecked == true) SwitchView(ViewSettings);
+        if (ViewDashboard == null) return;
+
+        if (NavDashboard?.IsChecked == true) SwitchView(ViewDashboard);
+        else if (NavBrowser?.IsChecked == true) SwitchView(ViewBrowser);
+        else if (NavWorkspaces?.IsChecked == true) SwitchView(ViewWorkspaces);
+        else if (NavNotes?.IsChecked == true) SwitchView(ViewNotes);
+        else if (NavPrivacy?.IsChecked == true) SwitchView(ViewPrivacy);
+        else if (NavSettings?.IsChecked == true) SwitchView(ViewSettings);
     }
 
-    private void SwitchView(UIElement view)
+    private void SwitchView(UIElement? view)
     {
-        ViewDashboard.Visibility = Visibility.Collapsed;
-        ViewBrowser.Visibility = Visibility.Collapsed;
-        ViewWorkspaces.Visibility = Visibility.Collapsed;
-        ViewNotes.Visibility = Visibility.Collapsed;
-        ViewPrivacy.Visibility = Visibility.Collapsed;
-        ViewSettings.Visibility = Visibility.Collapsed;
+        if (view == null || ViewDashboard == null) return;
+
+        if (ViewDashboard != null) ViewDashboard.Visibility = Visibility.Collapsed;
+        if (ViewBrowser != null) ViewBrowser.Visibility = Visibility.Collapsed;
+        if (ViewWorkspaces != null) ViewWorkspaces.Visibility = Visibility.Collapsed;
+        if (ViewNotes != null) ViewNotes.Visibility = Visibility.Collapsed;
+        if (ViewPrivacy != null) ViewPrivacy.Visibility = Visibility.Collapsed;
+        if (ViewSettings != null) ViewSettings.Visibility = Visibility.Collapsed;
 
         view.Visibility = Visibility.Visible;
     }

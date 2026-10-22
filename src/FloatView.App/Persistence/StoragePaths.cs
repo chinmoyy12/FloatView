@@ -5,11 +5,11 @@ namespace FloatView.App.Persistence;
 
 public static class StoragePaths
 {
-    private static readonly string AppDataFolder = Path.Combine(
+    public static readonly string AppDataFolder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "FloatView");
 
-    private static readonly string LocalAppDataFolder = Path.Combine(
+    public static readonly string LocalAppDataFolder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "FloatView");
 

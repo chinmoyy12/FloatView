@@ -8,6 +8,7 @@ namespace FloatView.App.Platform;
 [Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
 internal class MMDeviceEnumeratorComObject { }
 
+[ComImport]
 [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IMMDeviceEnumerator
 {
@@ -18,6 +19,7 @@ internal interface IMMDeviceEnumerator
     int UnregisterEndpointNotificationCallback(IntPtr pClient);
 }
 
+[ComImport]
 [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IMMDevice
 {
@@ -27,6 +29,7 @@ internal interface IMMDevice
     int GetState(out int pdwState);
 }
 
+[ComImport]
 [Guid("C02216F6-0380-4D5B-9C00-DAC82BE3EF83"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioMeterInformation
 {
