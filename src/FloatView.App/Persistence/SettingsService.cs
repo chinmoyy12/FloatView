@@ -352,7 +352,8 @@ public class SettingsService
             new() { Title = "Twitch", Url = "https://www.twitch.tv", Category = "Media", PreferredPreset = WindowPreset.Cinema },
             new() { Title = "GitHub", Url = "https://github.com", Category = "Productivity", PreferredPreset = WindowPreset.Compact },
             new() { Title = "Microsoft Learn", Url = "https://learn.microsoft.com", Category = "Study", PreferredPreset = WindowPreset.Compact },
-            new() { Title = "SoundCloud", Url = "https://soundcloud.com", Category = "Media", PreferredPreset = WindowPreset.UltraMini }
+            new() { Title = "SoundCloud", Url = "https://soundcloud.com", Category = "Media", PreferredPreset = WindowPreset.UltraMini },
+            new() { Title = "Localhost Testbed", Url = "http://localhost:5055", Category = "Testing", PreferredPreset = WindowPreset.Compact }
         };
     }
 

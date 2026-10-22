@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FloatView Media & Capabilities Testbed</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #111418;
+      color: #e5e7eb;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    h1 {
+      margin-top: 0;
+      color: #8b5cf6;
+      font-size: 24px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .card {
+      background: #1e232b;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    video, canvas {
+      width: 100%;
+      height: 200px;
+      background: #000;
+      border-radius: 6px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      background: #059669;
+      color: #fff;
+    }
+    .badge-error { background: #dc2626; }
+    .badge-warn { background: #d97706; }
+    button {
+      background: #8b5cf6;
+      border: none;
+      color: white;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      margin-right: 8px;
+      margin-top: 8px;
+    }
+    button:hover { background: #7c3aed; }
+    pre {
+      background: #0d1117;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      overflow-x: auto;
+      max-height: 140px;
+    }
+    .ytp-caption-segment {
+      background: rgba(0,0,0,0.8);
+      color: #ffeb3b;
+      padding: 4px 8px;
+      font-size: 14px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🪟 FloatView Localhost Media Testbed</h1>
+  <p>Status: <span id="overallStatus" class="status-badge">READY</span> | Running at <span id="currentTimeDisplay">00:00</span></p>
+
+  <div class="grid">
+    <!-- Card 1: Primary Loop Video Stream -->
+    <div class="card">
+      <h3>1. Primary Loop Video & Audio</h3>
+      <video id="mainVideo" controls autoplay loop playsinline></video>
+      <div style="margin-top: 8px;">
+        <button id="btnPlayPause">Play / Pause</button>
+        <button id="btnUnmute">Unmute Audio</button>
+        <button id="btnPip">Request Native PiP</button>
+      </div>
+      <div>
+        <p>Live Caption Track (YouTube style):</p>
+        <div id="ytCaption" class="ytp-caption-segment">FloatView Localhost Media Loop Testing Active</div>
+      </div>
+    </div>
+
+    <!-- Card 2: Shadow DOM & PiP Unblocking Test -->
+    <div class="card">
+      <h3>2. Shadow DOM Video Component</h3>
+      <div id="shadowHost"></div>
+      <p style="font-size: 12px; color: #9ca3af;">Verifies recursive Shadow DOM traversal and attribute unblocking.</p>
+      <div style="margin-top: 8px;">
+        <button id="btnShadowPlay">Play Shadow Video</button>
+        <button id="btnShadowPip">PiP Shadow Video</button>
+      </div>
+    </div>
+
+    <!-- Card 3: Embedded Iframe Test -->
+    <div class="card">
+      <h3>3. Embedded Frame (PiP Permissions)</h3>
+      <iframe id="testIframe" srcdoc="
+        <body style='margin:0; background:#000; color:#fff; display:flex; align-items:center; justify-content:center; height:100vh; font-family:sans-serif;'>
+          <video id='frameVideo' controls loop autoplay playsinline style='width:90%; height:80%;'></video>
+          <script>
+            const cv = document.createElement('canvas'); cv.width = 320; cv.height = 180;
+            const cx = cv.getContext('2d');
+            let f = 0;
+            setInterval(() => {
+              f += 0.05;
+              cx.fillStyle = '#065f46'; cx.fillRect(0, 0, 320, 180);
+              cx.fillStyle = '#34d399'; cx.font = '16px monospace';
+              cx.fillText('Iframe Media Loop: ' + f.toFixed(1) + 's', 30, 90);
+            }, 50);
+            document.getElementById('frameVideo').srcObject = cv.captureStream(25);
+            document.getElementById('frameVideo').play();
+          </script>
+        </body>"
+        style="width: 100%; height: 180px; border: 1px solid #374151; border-radius: 6px;"
+        allow="picture-in-picture; autoplay">
+      </iframe>
+    </div>
+
+    <!-- Card 4: Event Telemetry & Logs -->
+    <div class="card">
+      <h3>4. Diagnostics & Event Stream</h3>
+      <pre id="logArea">Initializing testbed canvas & synthesized audio...</pre>
+      <div style="margin-top: 8px;">
+        <button id="btnClearLog">Clear Log</button>
+        <button id="btnTriggerAd">Test Ad Shield Intercept</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test Tracker Script for Privacy Shield Test -->
+  <script>
+    window.testLog = [];
+    function logEvent(msg) {
+      const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      window.testLog.push(line);
+      const el = document.getElementById('logArea');
+      if (el) {
+        el.textContent = window.testLog.slice(-10).join('\n');
+      }
+      console.log(line);
+    }
+
+    // 1. Synthesize animated video on a canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = 640;
+    canvas.height = 360;
+    const ctx = canvas.getContext('2d');
+    let phase = 0;
+
+    // 2. Synthesize audio with Web Audio API (sine tone pulse)
+    let audioCtx = null;
+    let osc = null;
+    let gainNode = null;
+
+    function initAudio() {
+      if (audioCtx) return;
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        osc = audioCtx.createOscillator();
+        gainNode = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime); // A4 note
+        gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime); // soft volume
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start();
+        logEvent('Web Audio Synthesizer Started');
+      } catch (e) {
+        logEvent('Audio init note: ' + e.message);
+      }
+    }
+
+    // Render loop for main canvas stream
+    function renderLoop() {
+      phase += 0.04;
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, 640, 360);
+
+      // Draw animated sound waves
+      ctx.strokeStyle = '#8b5cf6';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      for (let x = 0; x < 640; x += 10) {
+        const y = 180 + Math.sin(phase + (x * 0.02)) * 60;
+        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Draw animated text
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 22px monospace';
+      ctx.fillText('FLOATVIEW LOCALHOST MEDIA TESTBED', 90, 70);
+      ctx.fillStyle = '#a78bfa';
+      ctx.font = '16px monospace';
+      ctx.fillText('Loop Timestamp: ' + phase.toFixed(2) + 's', 210, 310);
+
+      // Update subtitle segment dynamically
+      const sec = Math.floor(phase % 12);
+      const captions = [
+        "Welcome to FloatView Localhost Testbed",
+        "Validating Universal Floating Window Controls",
+        "Testing Real-Time WASAPI Audio Loopback Meter",
+        "Testing Shadow DOM and Subtitle Extraction",
+        "Zero Error Automated Verification Active"
+      ];
+      const capText = captions[sec % captions.length];
+      const capEl = document.getElementById('ytCaption');
+      if (capEl) capEl.textContent = capText;
+
+      const timeEl = document.getElementById('currentTimeDisplay');
+      if (timeEl) timeEl.textContent = phase.toFixed(1) + 's';
+
+      requestAnimationFrame(renderLoop);
+    }
+    renderLoop();
+
+    // Attach stream to main video
+    const mainVideo = document.getElementById('mainVideo');
+    try {
+      const stream = canvas.captureStream(30);
+      mainVideo.srcObject = stream;
+      mainVideo.muted = true; // start muted for autoplay policy
+      mainVideo.play().then(() => {
+        logEvent('Primary video playing stream (30fps)');
+      }).catch(err => logEvent('Play error: ' + err));
+    } catch (e) {
+      logEvent('Stream capture error: ' + e.message);
+    }
+
+    // Shadow DOM Video Setup
+    const shadowHost = document.getElementById('shadowHost');
+    const shadowRoot = shadowHost.attachShadow({ mode: 'open' });
+    const shadowVideo = document.createElement('video');
+    shadowVideo.id = 'shadowVideo';
+    shadowVideo.controls = true;
+    shadowVideo.autoplay = true;
+    shadowVideo.muted = true;
+    shadowVideo.loop = true;
+    shadowVideo.setAttribute('disablepictureinpicture', 'true'); // deliberately test unblocker
+    shadowVideo.style.cssText = 'width:100%; height:140px; background:#000; border-radius:6px;';
+    shadowRoot.appendChild(shadowVideo);
+
+    const shadowCanvas = document.createElement('canvas');
+    shadowCanvas.width = 320;
+    shadowCanvas.height = 180;
+    const sCtx = shadowCanvas.getContext('2d');
+    let sPhase = 0;
+    function renderShadow() {
+      sPhase += 0.05;
+      sCtx.fillStyle = '#1e1b4b';
+      sCtx.fillRect(0, 0, 320, 180);
+      sCtx.fillStyle = '#c084fc';
+      sCtx.font = '14px monospace';
+      sCtx.fillText('Shadow DOM Media: ' + sPhase.toFixed(1) + 's', 30, 90);
+      requestAnimationFrame(renderShadow);
+    }
+    renderShadow();
+    shadowVideo.srcObject = shadowCanvas.captureStream(20);
+    shadowVideo.play();
+
+    // Event Listeners
+    document.getElementById('btnPlayPause').addEventListener('click', () => {
+      if (mainVideo.paused) {
+        mainVideo.play();
+        logEvent('Main video: play()');
+      } else {
+        mainVideo.pause();
+        logEvent('Main video: pause()');
+      }
+    });
+
+    document.getElementById('btnUnmute').addEventListener('click', () => {
+      initAudio();
+      mainVideo.muted = false;
+      logEvent('Main video unmuted');
+    });
+
+    document.getElementById('btnPip').addEventListener('click', async () => {
+      try {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+          logEvent('Exited Picture-in-Picture');
+        } else {
+          await mainVideo.requestPictureInPicture();
+          logEvent('Entered Picture-in-Picture successfully');
+        }
+      } catch (err) {
+        logEvent('PiP Error: ' + err.message);
+      }
+    });
+
+    document.getElementById('btnShadowPlay').addEventListener('click', () => {
+      if (shadowVideo.paused) shadowVideo.play(); else shadowVideo.pause();
+      logEvent('Shadow video toggled');
+    });
+
+    document.getElementById('btnShadowPip').addEventListener('click', async () => {
+      try {
+        shadowVideo.removeAttribute('disablepictureinpicture');
+        await shadowVideo.requestPictureInPicture();
+        logEvent('Shadow video entered PiP');
+      } catch (err) {
+        logEvent('Shadow PiP error: ' + err.message);
+      }
+    });
+
+    document.getElementById('btnClearLog').addEventListener('click', () => {
+      window.testLog = [];
+      document.getElementById('logArea').textContent = '';
+    });
+
+    document.getElementById('btnTriggerAd').addEventListener('click', () => {
+      logEvent('Triggering ad request to test Privacy Shield...');
+      fetch('https://google-analytics.com/collect', { mode: 'no-cors' })
+        .then(() => logEvent('Ad request completed (Shield may be inactive)'))
+        .catch(err => logEvent('Ad request blocked as expected: ' + err.message));
+    });
+
+    // Notify Ready State
+    window.testStatus = {
+      isReady: true,
+      hasMedia: true,
+      hasShadowMedia: true,
+      hasIframeMedia: true,
+      title: document.title
+    };
+    logEvent('Testbed fully initialized and running.');
+  </script>
+</body>
+</html>

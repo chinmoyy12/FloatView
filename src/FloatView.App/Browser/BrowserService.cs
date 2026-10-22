@@ -56,7 +56,15 @@ public class BrowserService
 
         if (input.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
         {
-            return forceHttps ? "https://" + input.Substring(7) : input;
+            bool isLocalhost = input.StartsWith("http://localhost", StringComparison.OrdinalIgnoreCase) ||
+                               input.StartsWith("http://127.0.0.1", StringComparison.OrdinalIgnoreCase) ||
+                               input.StartsWith("http://0.0.0.0", StringComparison.OrdinalIgnoreCase);
+
+            if (forceHttps && !isLocalhost)
+            {
+                return "https://" + input.Substring(7);
+            }
+            return input;
         }
 
         if (input.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
