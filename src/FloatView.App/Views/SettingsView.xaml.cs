@@ -34,6 +34,15 @@ public partial class SettingsView : UserControl
         TxtBreakDuration.Text = s.FocusBreakDurationMinutes.ToString();
         ChkStartup.IsChecked = StartupService.IsRunAtStartupEnabled();
 
+        // Smart Media Detection
+        ChkSmartDetection.IsChecked = s.SmartMediaDetectionEnabled;
+        ChkSmartToast.IsChecked = s.SmartDetectionShowToast;
+        ChkSmartSafeHandoff.IsChecked = s.SmartDetectionSafeHandoff;
+        ChkSmartAudioFallback.IsChecked = s.SmartDetectionAudioFallbackEnabled;
+        ChkMinimizeToTray.IsChecked = s.MinimizeToTrayOnClose;
+        SliderDebounce.Value = Math.Clamp(s.SmartDetectionDebounceSeconds, 1, 5);
+        TxtDebounceValue.Text = $"{(int)SliderDebounce.Value}s";
+
         // Match combo index
         int idx = Math.Clamp(s.MaxActiveFloats - 1, 0, 4);
         CmbMaxFloats.SelectedIndex = idx;
@@ -136,6 +145,82 @@ public partial class SettingsView : UserControl
         catch (Exception ex)
         {
             MessageBox.Show($"Error clearing cache: {ex.Message}", "FloatView", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void OnSmartDetectionToggled(object sender, RoutedEventArgs e)
+    {
+        if (_settingsService == null) return;
+        _settingsService.Settings.SmartMediaDetectionEnabled = ChkSmartDetection.IsChecked == true;
+        _settingsService.SaveSettings(_settingsService.Settings);
+    }
+
+    private void OnSmartToastToggled(object sender, RoutedEventArgs e)
+    {
+        if (_settingsService == null) return;
+        _settingsService.Settings.SmartDetectionShowToast = ChkSmartToast.IsChecked == true;
+        _settingsService.SaveSettings(_settingsService.Settings);
+    }
+
+    private void OnSmartSafeHandoffToggled(object sender, RoutedEventArgs e)
+    {
+        if (_settingsService == null) return;
+        _settingsService.Settings.SmartDetectionSafeHandoff = ChkSmartSafeHandoff.IsChecked == true;
+        _settingsService.SaveSettings(_settingsService.Settings);
+    }
+
+    private void OnSmartAudioFallbackToggled(object sender, RoutedEventArgs e)
+    {
+        if (_settingsService == null) return;
+        _settingsService.Settings.SmartDetectionAudioFallbackEnabled = ChkSmartAudioFallback.IsChecked == true;
+        _settingsService.SaveSettings(_settingsService.Settings);
+    }
+
+    private void OnMinimizeToTrayToggled(object sender, RoutedEventArgs e)
+    {
+        if (_settingsService == null) return;
+        _settingsService.Settings.MinimizeToTrayOnClose = ChkMinimizeToTray.IsChecked == true;
+        _settingsService.SaveSettings(_settingsService.Settings);
+    }
+
+    private void OnDebounceChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_settingsService == null) return;
+        int val = (int)e.NewValue;
+        _settingsService.Settings.SmartDetectionDebounceSeconds = val;
+        _settingsService.SaveSettings(_settingsService.Settings);
+        if (TxtDebounceValue != null)
+        {
+            TxtDebounceValue.Text = $"{val}s";
+        }
+    }
+
+    private void OnRegisterHostClicked(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string appDir = AppDomain.CurrentDomain.BaseDirectory;
+            string manifestPath = Path.GetFullPath(Path.Combine(appDir, "..", "..", "..", "..", "extension", "com.floatview.bridge.json"));
+            if (!File.Exists(manifestPath))
+            {
+                manifestPath = Path.Combine(appDir, "com.floatview.bridge.json");
+            }
+
+            using (var chromeKey = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Google\Chrome\NativeMessagingHosts\com.floatview.bridge"))
+            {
+                chromeKey?.SetValue("", manifestPath);
+            }
+            using (var edgeKey = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Edge\NativeMessagingHosts\com.floatview.bridge"))
+            {
+                edgeKey?.SetValue("", manifestPath);
+            }
+
+            TxtExtensionStatus.Text = "Native host registered in Chrome and Edge! (HKCU)";
+            MessageBox.Show("Native messaging host registered for Google Chrome and Microsoft Edge.", "FloatView", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to register native host: {ex.Message}", "FloatView", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 

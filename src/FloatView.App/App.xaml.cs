@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using FloatView.App.Persistence;
+using FloatView.App.Platform;
 
 namespace FloatView.App;
 
@@ -12,6 +13,22 @@ public partial class App : Application
     {
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
+    }
+
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+
+        if (NativeMessagingRelay.IsNativeMessagingInvocation(e.Args))
+        {
+            NativeMessagingRelay.Run(e.Args);
+            Shutdown();
+            return;
+        }
+
+        var mainWindow = new MainWindow();
+        MainWindow = mainWindow;
+        mainWindow.Show();
     }
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

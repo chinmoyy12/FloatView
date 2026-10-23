@@ -22,3 +22,10 @@ if (Test-Path $InstallerOutput) {
 } else {
     Write-Error "Installer compilation did not produce expected output."
 }
+
+# Also package portable zip release
+$ZipOutput = "installer\output\FloatView-v1.0.0-win-x64.zip"
+Write-Host "==> Packaging portable zip release at $ZipOutput..." -ForegroundColor Cyan
+if (Test-Path $ZipOutput) { Remove-Item $ZipOutput -Force }
+Compress-Archive -Path "publish\win-x64\*" -DestinationPath $ZipOutput -Force
+Write-Host "[SUCCESS] Portable release archive ready at $ZipOutput" -ForegroundColor Green

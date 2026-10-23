@@ -148,6 +148,50 @@ public static class WindowsApi
         SetWindowLongPtr(hwnd, GWL_EXSTYLE, new IntPtr(exStyle & ~WS_EX_TRANSPARENT));
     }
 
+    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    public static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsWindowVisible(IntPtr hWnd);
+
+    public static string? GetMainWindowTitleForProcess(int processId)
+    {
+        string? matchedTitle = null;
+        EnumWindows((hWnd, lParam) =>
+        {
+            if (!IsWindowVisible(hWnd)) return true;
+            GetWindowThreadProcessId(hWnd, out uint pid);
+            if (pid == (uint)processId)
+            {
+                var sb = new System.Text.StringBuilder(512);
+                int len = GetWindowText(hWnd, sb, sb.Capacity);
+                if (len > 0)
+                {
+                    string text = sb.ToString().Trim();
+                    // Avoid empty, tooltip, or generic system windows
+                    if (text.Length > 2 && text != "MSCTFIME UI" && text != "Default IME")
+                    {
+                        matchedTitle = text;
+                        return false; // Stop enumeration
+                    }
+                }
+            }
+            return true;
+        }, IntPtr.Zero);
+
+        return matchedTitle;
+    }
+
     public static void ApplyImmersiveDarkMode(IntPtr hwnd)
     {
         try

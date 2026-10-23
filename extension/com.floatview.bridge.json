@@ -1,0 +1,9 @@
+{
+  "name": "com.floatview.bridge",
+  "description": "FloatView Smart Media Detection Bridge",
+  "path": "FloatView.App.exe",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://*/*"
+  ]
+}

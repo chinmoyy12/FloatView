@@ -58,6 +58,7 @@ public partial class FloatingWindow : Window
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;
         Closing += OnClosing;
+        KeyDown += OnFloatingWindowKeyDown;
 
         // Hover toolbar interactions
         BrowserContainer.MouseEnter += (_, _) =>
@@ -239,6 +240,23 @@ public partial class FloatingWindow : Window
         }
     }
 
+    private void OnFloatingWindowKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.K && (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt)) == (ModifierKeys.Control | ModifierKeys.Alt))
+        {
+            ToggleClickThrough();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            if (_isClickThrough)
+            {
+                SetClickThrough(false);
+                e.Handled = true;
+            }
+        }
+    }
+
     public void SnapPosition()
     {
         var snapped = WindowPositionService.CalculateSnappedPosition(
@@ -362,12 +380,17 @@ public partial class FloatingWindow : Window
         NotifyConfigUpdated();
     }
 
-    private async void OnPlayPauseClicked(object sender, RoutedEventArgs e)
+    public async Task TogglePlayPauseAsync()
     {
         if (WebViewControl?.CoreWebView2 != null)
         {
             await MediaDetectionService.TogglePlayPauseAsync(WebViewControl.CoreWebView2);
         }
+    }
+
+    private async void OnPlayPauseClicked(object sender, RoutedEventArgs e)
+    {
+        await TogglePlayPauseAsync();
     }
 
     private async void OnRewindClicked(object sender, RoutedEventArgs e)

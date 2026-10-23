@@ -56,6 +56,15 @@ public class AppSettings
     public string VisualizerStyle { get; set; } = "Bars"; // "Off", "LowPower", "Bars", "Waveform"
     public bool PreferNativePip { get; set; } = true;
 
+    // Smart Media Detection
+    public bool SmartMediaDetectionEnabled { get; set; } = true;
+    public bool SmartDetectionShowToast { get; set; } = true;
+    public int SmartDetectionDebounceSeconds { get; set; } = 2; // minimum playing duration before prompt
+    public int SmartDetectionCooldownSeconds { get; set; } = 30; // cooldown for same URL/source
+    public bool SmartDetectionSafeHandoff { get; set; } = true; // safe handoff pauses source when float confirms playback
+    public bool SmartDetectionAudioFallbackEnabled { get; set; } = true; // WASAPI audio session detection fallback
+    public bool MinimizeToTrayOnClose { get; set; } = true;
+
     // Focus Session Defaults
     public int FocusDurationMinutes { get; set; } = 25;
     public int FocusBreakDurationMinutes { get; set; } = 5;

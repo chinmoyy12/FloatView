@@ -8,11 +8,22 @@ namespace FloatView.App.Persistence;
 
 public class SettingsService
 {
+    private static readonly object FileLock = new();
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
         PropertyNameCaseInsensitive = true
     };
+
+    private static string ReadAllTextShared(string filePath)
+    {
+        lock (FileLock)
+        {
+            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(fs);
+            return reader.ReadToEnd();
+        }
+    }
 
     private AppSettings _currentSettings;
 
@@ -29,7 +40,7 @@ public class SettingsService
         {
             if (File.Exists(StoragePaths.SettingsFile))
             {
-                var json = File.ReadAllText(StoragePaths.SettingsFile);
+                var json = ReadAllTextShared(StoragePaths.SettingsFile);
                 var loaded = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
                 if (loaded != null)
                 {
@@ -40,6 +51,7 @@ public class SettingsService
         }
         catch (Exception ex)
         {
+            BackupCorruptedFile(StoragePaths.SettingsFile);
             Log($"Failed to read settings: {ex.Message}. Falling back to default settings.");
         }
 
@@ -60,13 +72,14 @@ public class SettingsService
         {
             if (File.Exists(StoragePaths.WorkspacesFile))
             {
-                var json = File.ReadAllText(StoragePaths.WorkspacesFile);
+                var json = ReadAllTextShared(StoragePaths.WorkspacesFile);
                 var list = JsonSerializer.Deserialize<List<WorkspaceModel>>(json, JsonOptions);
                 if (list != null && list.Count > 0) return list;
             }
         }
         catch (Exception ex)
         {
+            BackupCorruptedFile(StoragePaths.WorkspacesFile);
             Log($"Failed to load workspaces: {ex.Message}. Creating default presets.");
         }
 
@@ -86,13 +99,14 @@ public class SettingsService
         {
             if (File.Exists(StoragePaths.FavoritesFile))
             {
-                var json = File.ReadAllText(StoragePaths.FavoritesFile);
+                var json = ReadAllTextShared(StoragePaths.FavoritesFile);
                 var list = JsonSerializer.Deserialize<List<FavoriteItem>>(json, JsonOptions);
                 if (list != null && list.Count > 0) return list;
             }
         }
         catch (Exception ex)
         {
+            BackupCorruptedFile(StoragePaths.FavoritesFile);
             Log($"Failed to load favorites: {ex.Message}. Creating defaults.");
         }
 
@@ -112,13 +126,14 @@ public class SettingsService
         {
             if (File.Exists(StoragePaths.NotesFile))
             {
-                var json = File.ReadAllText(StoragePaths.NotesFile);
+                var json = ReadAllTextShared(StoragePaths.NotesFile);
                 var list = JsonSerializer.Deserialize<List<CaptionNote>>(json, JsonOptions);
                 if (list != null) return list;
             }
         }
         catch (Exception ex)
         {
+            BackupCorruptedFile(StoragePaths.NotesFile);
             Log($"Failed to load notes: {ex.Message}");
         }
 
@@ -136,13 +151,14 @@ public class SettingsService
         {
             if (File.Exists(StoragePaths.PrivacyRulesFile))
             {
-                var json = File.ReadAllText(StoragePaths.PrivacyRulesFile);
+                var json = ReadAllTextShared(StoragePaths.PrivacyRulesFile);
                 var list = JsonSerializer.Deserialize<List<PrivacyRule>>(json, JsonOptions);
                 if (list != null && list.Count > 0) return list;
             }
         }
         catch (Exception ex)
         {
+            BackupCorruptedFile(StoragePaths.PrivacyRulesFile);
             Log($"Failed to load privacy rules: {ex.Message}");
         }
 
@@ -162,13 +178,14 @@ public class SettingsService
         {
             if (File.Exists(StoragePaths.SessionFile))
             {
-                var json = File.ReadAllText(StoragePaths.SessionFile);
+                var json = ReadAllTextShared(StoragePaths.SessionFile);
                 var list = JsonSerializer.Deserialize<List<FloatingWindowConfig>>(json, JsonOptions);
                 if (list != null) return list;
             }
         }
         catch (Exception ex)
         {
+            BackupCorruptedFile(StoragePaths.SessionFile);
             Log($"Failed to load session: {ex.Message}");
         }
 
@@ -201,26 +218,65 @@ public class SettingsService
         try { if (File.Exists(StoragePaths.PrivacyRulesFile)) File.Delete(StoragePaths.PrivacyRulesFile); } catch { }
     }
 
-    private static void AtomicWrite<T>(string filePath, T data)
+    private static void BackupCorruptedFile(string filePath)
     {
         try
         {
-            var tempPath = filePath + ".tmp";
-            var json = JsonSerializer.Serialize(data, JsonOptions);
-            File.WriteAllText(tempPath, json);
-
             if (File.Exists(filePath))
             {
-                File.Replace(tempPath, filePath, null);
-            }
-            else
-            {
-                File.Move(tempPath, filePath);
+                var bakPath = filePath + ".corrupt.bak";
+                File.Copy(filePath, bakPath, overwrite: true);
+                Log($"Preserved backup copy of corrupted file: {bakPath}");
             }
         }
-        catch (Exception ex)
+        catch { }
+    }
+
+    public static void AtomicWrite<T>(string filePath, T data)
+    {
+        lock (FileLock)
         {
-            Log($"Atomic write failed for {filePath}: {ex.Message}");
+            string? tempPath = null;
+            try
+            {
+                var dir = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrEmpty(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                tempPath = $"{filePath}.{Guid.NewGuid():N}.tmp";
+                var json = JsonSerializer.Serialize(data, JsonOptions);
+                File.WriteAllText(tempPath, json);
+
+                if (File.Exists(filePath))
+                {
+                    try
+                    {
+                        File.Replace(tempPath, filePath, null);
+                    }
+                    catch
+                    {
+                        File.Copy(tempPath, filePath, overwrite: true);
+                        File.Delete(tempPath);
+                    }
+                }
+                else
+                {
+                    File.Move(tempPath, filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"Atomic write failed for {filePath}: {ex.Message}");
+            }
+            finally
+            {
+                if (tempPath != null && File.Exists(tempPath))
+                {
+                    try { File.Delete(tempPath); } catch { }
+                }
+            }
         }
     }
 

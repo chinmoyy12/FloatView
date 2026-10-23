@@ -42,6 +42,28 @@ public class CaptionNote
     public string NoteText { get; set; } = string.Empty;
     public string ExtractedCaption { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public static string ExportToMarkdown(IEnumerable<CaptionNote> notes)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("# FloatView Study Notes & Captions");
+        sb.AppendLine($"Exported: {DateTime.Now:f}\n");
+
+        foreach (var note in notes)
+        {
+            string safeTitle = string.IsNullOrWhiteSpace(note.PageTitle) ? "Untitled Media" : note.PageTitle.Replace("[", "\\[").Replace("]", "\\]");
+            sb.AppendLine($"### [{note.FormattedTimestamp}] {safeTitle}");
+            sb.AppendLine($"- **Source**: {note.Url}");
+            if (!string.IsNullOrWhiteSpace(note.ExtractedCaption))
+            {
+                string safeCaption = note.ExtractedCaption.Replace("*", "\\*");
+                sb.AppendLine($"- **Caption**: *\"{safeCaption}\"*");
+            }
+            sb.AppendLine($"- **Note**: {note.NoteText}\n");
+        }
+
+        return sb.ToString();
+    }
 }
 
 public class PrivacyRule

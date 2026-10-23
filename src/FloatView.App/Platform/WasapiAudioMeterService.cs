@@ -12,10 +12,15 @@ internal class MMDeviceEnumeratorComObject { }
 [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IMMDeviceEnumerator
 {
+    [PreserveSig]
     int EnumAudioEndpoints(int dataFlow, int dwStateMask, out IntPtr ppDevices);
+    [PreserveSig]
     int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice ppEndpoint);
+    [PreserveSig]
     int GetDevice([MarshalAs(UnmanagedType.LPWStr)] string pwstrId, out IMMDevice ppDevice);
+    [PreserveSig]
     int RegisterEndpointNotificationCallback(IntPtr pClient);
+    [PreserveSig]
     int UnregisterEndpointNotificationCallback(IntPtr pClient);
 }
 
@@ -23,9 +28,13 @@ internal interface IMMDeviceEnumerator
 [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IMMDevice
 {
-    int Activate(ref Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+    [PreserveSig]
+    int Activate(ref Guid iid, int dwClsCtx, IntPtr pActivationParams, out IntPtr ppInterface);
+    [PreserveSig]
     int OpenPropertyStore(int stgmAccess, out IntPtr ppProperties);
+    [PreserveSig]
     int GetId([MarshalAs(UnmanagedType.LPWStr)] out string ppstrId);
+    [PreserveSig]
     int GetState(out int pdwState);
 }
 
@@ -33,9 +42,13 @@ internal interface IMMDevice
 [Guid("C02216F6-0380-4D5B-9C00-DAC82BE3EF83"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioMeterInformation
 {
+    [PreserveSig]
     int GetPeakValue(out float pfPeak);
+    [PreserveSig]
     int GetMeteringChannelCount(out int pnChannelCount);
+    [PreserveSig]
     int GetChannelsPeakValues(int u32ChannelCount, [In, Out] float[] afPeakValues);
+    [PreserveSig]
     int QueryHardwareSupport(out int pdwHardwareSupportMask);
 }
 
@@ -67,11 +80,22 @@ public class WasapiAudioMeterService
             if (hr == 0 && _device != null)
             {
                 var iid = IidAudioMeter;
-                hr = _device.Activate(ref iid, CLSCTX_INPROC_SERVER, IntPtr.Zero, out object meterObj);
-                if (hr == 0 && meterObj is IAudioMeterInformation meter)
+                hr = _device.Activate(ref iid, CLSCTX_INPROC_SERVER, IntPtr.Zero, out IntPtr pMeter);
+                if (hr == 0 && pMeter != IntPtr.Zero)
                 {
-                    _meter = meter;
-                    _isInitialized = true;
+                    try
+                    {
+                        var obj = Marshal.GetObjectForIUnknown(pMeter);
+                        if (obj is IAudioMeterInformation meter)
+                        {
+                            _meter = meter;
+                            _isInitialized = true;
+                        }
+                    }
+                    finally
+                    {
+                        Marshal.Release(pMeter);
+                    }
                 }
             }
         }
@@ -81,7 +105,7 @@ public class WasapiAudioMeterService
             _device = null;
             if (!_isInitialized)
             {
-                SettingsService.Log($"WASAPI Audio Meter initialization info: {ex.Message}");
+                SettingsService.Log($"WASAPI Audio Meter initialization info: {ex}");
             }
         }
     }
@@ -98,7 +122,6 @@ public class WasapiAudioMeterService
             {
                 return Math.Clamp(peak, 0f, 1f);
             }
-            // Device might have changed or disconnected
             _meter = null;
             _device = null;
         }

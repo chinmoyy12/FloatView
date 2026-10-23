@@ -10,27 +10,35 @@
 
 ```
 FloatView.slnx
+├── extension/                 -> Companion Chromium MV3 Extension (manifest, content.js, background.js)
 ├── src/FloatView.App/
 │   ├── Platform/
-│   │   ├── WindowsApi.cs         -> Win32 User32 & DWM interop, click-through (WS_EX_TRANSPARENT), WM_HOTKEY, HT_CAPTION
-│   │   ├── DisplayService.cs     -> Multi-monitor enumeration, work-area bounding (taskbars), DPI recovery
-│   │   └── StartupService.cs     -> Run at Windows startup via HKCU Run registry
+│   │   ├── WindowsApi.cs      -> Win32 User32 & DWM interop, click-through, EnumWindows, process window title resolution
+│   │   ├── DisplayService.cs  -> Multi-monitor enumeration, work-area bounding (taskbars), DPI recovery
+│   │   ├── StartupService.cs  -> Run at Windows startup via HKCU Run registry
+│   │   ├── TrayIconService.cs -> Win32 Shell_NotifyIconW tray icon with double-click and context menu
+│   │   └── NativeMessagingRelay.cs -> Chromium Native Messaging 4-byte length prefix stdio relay
 │   ├── Persistence/
-│   │   ├── StoragePaths.cs       -> AppData (settings/workspaces/notes/privacy) and LocalAppData (WebView2 profile)
-│   │   └── SettingsService.cs    -> Atomic file writes (.tmp -> File.Replace) & corruption fallback
+│   │   ├── StoragePaths.cs    -> AppData (settings/workspaces/notes/privacy) and LocalAppData (WebView2 profile)
+│   │   └── SettingsService.cs -> Atomic file writes (.tmp -> File.Replace) & corruption fallback
 │   ├── Models/
-│   │   ├── AppSettings.cs        -> Configuration for theme, opacity, hotkeys, snapping, edge docking
+│   │   ├── AppSettings.cs     -> Configuration for theme, opacity, hotkeys, snapping, smart media detection
+│   │   ├── SmartDetectionModels.cs -> MediaCandidate, MediaEventMessage, MediaSourceType
 │   │   ├── FloatingWindowConfig.cs -> Presets (UltraMini, Compact, Cinema), coordinates, topmost, dock edge
-│   │   └── EntityModels.cs       -> WorkspaceModel, FavoriteItem, CaptionNote, PrivacyRule, FocusSessionModel
+│   │   └── EntityModels.cs    -> WorkspaceModel, FavoriteItem, CaptionNote, PrivacyRule, FocusSessionModel
 │   ├── Floating/
-│   │   ├── FloatingWindow.xaml   -> Sleek borderless window, custom header, media controls, captions, visualizer
-│   │   ├── FloatingWindowManager.cs -> Orchestrator for active floats (default max: 3), master show/hide, sessions
+│   │   ├── FloatingWindow.xaml -> Sleek borderless window, custom header, media controls, captions, visualizer
+│   │   ├── FloatingWindowManager.cs -> Orchestrator for active floats, master show/hide, sessions
 │   │   ├── WindowPositionService.cs -> Magnetic edge snapping to screen borders & neighboring floats, layouts
 │   │   └── EdgeActivationService.cs -> Edge docking math & slide-out/in cubic ease animations
 │   ├── Browser/
-│   │   ├── BrowserService.cs     -> CoreWebView2Environment reuse, URL normalization (HTTPS/search fallback)
+│   │   ├── BrowserService.cs  -> CoreWebView2Environment reuse, URL normalization (HTTPS/search fallback)
 │   │   └── MediaDetectionService.cs -> JavaScript bridge for <video>/<audio> playback, native PiP, and caption cues
+│   ├── Notifications/
+│   │   └── MediaDetectedNotificationWindow.xaml -> Modern bottom-right toast with [Use FloatView] / [Not now]
 │   ├── Media/
+│   │   ├── SmartMediaCoordinator.cs -> Multi-candidate aggregator, debounce filter, cooldown, safe handoff
+│   │   ├── BrowserBridgeService.cs -> Dual transport (HTTP 48123 & Named Pipe FloatViewMediaBridge)
 │   │   ├── GlobalHotkeyService.cs -> Win32 RegisterHotKey message pump hook with conflict detection
 │   │   └── AudioVisualizerService.cs -> Dynamic playback-reactive audio activity visualizer
 │   ├── Privacy/
@@ -40,19 +48,20 @@ FloatView.slnx
 │   ├── Palette/
 │   │   └── CommandPaletteWindow.xaml -> Alt+Space spotlight launcher with keyboard fuzzy search
 │   ├── Themes/
-│   │   ├── Colors.xaml           -> Deep graphite (#0D0F15, #161923), soft borders, violet accents
-│   │   ├── Typography.xaml       -> Segoe UI Variable Display & Cascadia Code typography
-│   │   ├── Icons.xaml            -> Crisp vector geometry paths
-│   │   └── Controls.xaml         -> Button, slider, and input templates
+│   │   ├── Colors.xaml        -> Deep graphite (#0D0F15, #161923), soft borders, violet accents
+│   │   ├── Typography.xaml    -> Segoe UI Variable Display & Cascadia Code typography
+│   │   ├── Icons.xaml         -> Crisp vector geometry paths
+│   │   └── Controls.xaml      -> Button, slider, and input templates
 │   └── Views/
-│       ├── DashboardView.xaml    -> Live active floats card, layout arrangements, focus timer, favorites
-│       ├── BrowserView.xaml      -> Embedded mini browser with 1-click Pop Out to Float
-│       ├── WorkspacesView.xaml   -> Study Mode, Coding Setup, Gaming, Night Music presets & custom saving
-│       ├── NotesView.xaml        -> Timestamped video captions, search filter, and Markdown export
-│       ├── PrivacyView.xaml      -> Shield status, total blocked count, allowlist, and block rule manager
-│       └── SettingsView.xaml     -> Complete preferences, diagnostics, and data reset
-└── tests/FloatView.Tests/        -> 27 automated unit tests covering URL normalization, bounds math, snapping,
-                                     workspaces round-trip, privacy shield, allowlist precedence, and focus timer
+│       ├── DashboardView.xaml -> Live active floats card, layout arrangements, focus timer, favorites
+│       ├── BrowserView.xaml   -> Embedded mini browser with 1-click Pop Out to Float
+│       ├── WorkspacesView.xaml -> Study Mode, Coding Setup, Gaming, Night Music presets & custom saving
+│       ├── NotesView.xaml     -> Timestamped video captions, search filter, and Markdown export
+│       ├── PrivacyView.xaml   -> Shield status, total blocked count, allowlist, and block rule manager
+│       ├── SettingsView.xaml  -> Complete preferences, diagnostics, and data reset
+│       └── MediaSourcePickerWindow.xaml -> "Choose what to float" modal with one-click float launch
+└── tests/FloatView.Tests/     -> 65 automated unit tests covering Smart Media Detection, debouncing, WASAPI parsing,
+                                  URL normalization, bounds math, snapping, workspaces round-trip, and privacy shield
 ```
 
 ---
@@ -113,3 +122,68 @@ When a window is docked to the right, left, top, or bottom:
    - `MediaDetectionService` leverages recursive Shadow DOM traversal (`deepQueryAll`) to locate nested video components across web components.
    - Injects platform-specific hooks for YouTube (`movie_player`), Netflix (`window.netflix.appContext.state.playerApp`), and Spotify Web Player.
    - Unblocks restricted PiP attributes (`disablepictureinpicture`, `controlslist="nopictureinpicture"`) and injects `allow="picture-in-picture; autoplay"` into all iframes. When native browser PiP is restricted by host policy, FloatView automatically executes a seamless fallback to its borderless Ultra-Mini floating window.
+
+
+---
+
+## 7. Smart Media Detection (Detect, Select, Float) Subsystem
+
+```
++-----------------------------------------------------------------------------------+
+|                            EXTERNAL BROWSER PLAYBACK                              |
+|   (Google Chrome, Microsoft Edge, Brave, Firefox, YouTube, Twitch, Local Streams) |
++----------------------------------------+------------------------------------------+
+                                         |
+               +-------------------------+-------------------------+
+               | Layer 1: Extension                                | Layer 2: Core Audio
+               v                                                   v
+    +----------------------+                            +----------------------+
+    | extension/content.js |                            | AudioSessionWatcher  |
+    | HTML5 / YouTube Hook |                            | WASAPI Session Enum  |
+    +----------+-----------+                            +----------+-----------+
+               |                                                   |
+               v                                                   | (PID / Peak / Window)
+    +----------------------+                                       |
+    |  extension/bg.js     |                                       |
+    | (Native / HTTP Post) |                                       |
+    +----------+-----------+                                       |
+               |                                                   |
+               +-------------------------+                         |
+                                         v                         v
+                       +--------------------------------------------------+
+                       |             FloatView Desktop App                |
+                       |                                                  |
+                       |  [ BrowserBridgeService ] (HTTP & Named Pipe)    |
+                       |                      |                           |
+                       |                      v                           |
+                       |         [ SmartMediaCoordinator ]                |
+                       |   - Debounce Filter (1-5s active playing)        |
+                       |   - Cooldown Suppression (30s per source)        |
+                       |   - Self-Floating URL Deduplication              |
+                       |                      |                           |
+                       |                      +------------------------+  |
+                       |                      |                        |  |
+                       |                      v                        v  |
+                       |          [ Notification Toast ]      [ Tray Icon ]|
+                       |          "Media detected" (WPF)      (Shell API)  |
+                       |                      |                           |
+                       |                      v                           |
+                       |          [ MediaSourcePicker ]                   |
+                       |         "Choose what to float"                   |
+                       |                      | (One-Click Launch)        |
+                       |                      v                           |
+                       |         [ FloatingWindowManager ]                |
+                       |         Launches Float + Safe Handoff            |
+                       +--------------------------------------------------+
+```
+
+1. **Dual-Layer Architecture**:
+   - **Layer 1 (Companion Extension)**: Observes `<video>` and `<audio>` events across Chrome and Edge, capturing exact canonical URLs, clean titles, playback timestamps, and duration. Communicates via Chromium Native Messaging (`com.floatview.bridge`) and local HTTP loopback (`127.0.0.1:48123`).
+   - **Layer 2 (Core Audio WASAPI)**: `AudioSessionWatcher` continuously queries `IAudioSessionManager2` to discover media audio output from browser processes without requiring any extension installation. Window titles are resolved via Win32 `EnumWindows` and mapped to domain sources.
+2. **Coordinator & Debouncing**:
+   - `SmartMediaCoordinator` coordinates candidate states. Playback must be continuously active for a configurable debounce threshold (default 2s) to prevent notification spam during playlist scrubbing.
+   - 30-second cooldown suppression prevents repeated prompts for the same media.
+   - Cross-references open floating windows to eliminate self-detection loops.
+3. **One-Click Launch & Safe Handoff**:
+   - `MediaSourcePickerWindow` lists all detected candidates. Clicking any item immediately opens the floating window at the current timestamp (`#t={seconds}s`).
+   - Safe handoff policy waits until destination playback is verified, then dispatches an asynchronous `PAUSE` command to the external browser tab to prevent dual-audio without risking premature destruction of the source session.

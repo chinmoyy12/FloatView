@@ -200,7 +200,118 @@
                 </StackPanel>
             </Border>
 
-            <!-- Section 5: Startup & Maintenance -->
+            <!-- Section 5: Smart Media Detection & External Browser Watcher -->
+            <Border Background="{StaticResource BrushBgCard}"
+                    BorderBrush="{StaticResource BrushBorderSubtle}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Smart Media Detection (Detect, Select, Float)" Style="{StaticResource StyleHeaderMedium}" Margin="0,0,0,4" />
+                    <TextBlock Text="Runs quietly in the background to detect external media playing in Chrome or Edge." Style="{StaticResource StyleCaptionText}" Margin="0,0,0,12" />
+
+                    <!-- Enable Smart Media Detection -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Enable Background Media Detection" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock Text="Monitors external browser playback and surfaces one-click floating options." Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <CheckBox x:Name="ChkSmartDetection" Grid.Column="1" IsChecked="True" VerticalAlignment="Center" Click="OnSmartDetectionToggled" />
+                    </Grid>
+
+                    <!-- Show Notification Toast -->
+                    <Grid Margin="0,4,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Show Unobtrusive Notification Toast" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock Text="Displays a sleek prompt with [ Use FloatView ] when playback is detected." Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <CheckBox x:Name="ChkSmartToast" Grid.Column="1" IsChecked="True" VerticalAlignment="Center" Click="OnSmartToastToggled" />
+                    </Grid>
+
+                    <!-- Safe Media Handoff -->
+                    <Grid Margin="0,4,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Safe Media Handoff (Auto-Pause Source)" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock Text="Pauses the original browser tab only after the float verifies playback started." Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <CheckBox x:Name="ChkSmartSafeHandoff" Grid.Column="1" IsChecked="True" VerticalAlignment="Center" Click="OnSmartSafeHandoffToggled" />
+                    </Grid>
+
+                    <!-- Audio Session Fallback -->
+                    <Grid Margin="0,4,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Windows Core Audio (WASAPI) Fallback" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock Text="Detects active media audio sessions even when the browser extension is not active." Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <CheckBox x:Name="ChkSmartAudioFallback" Grid.Column="1" IsChecked="True" VerticalAlignment="Center" Click="OnSmartAudioFallbackToggled" />
+                    </Grid>
+
+                    <!-- Minimize to Tray -->
+                    <Grid Margin="0,4,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Close / Minimize to System Tray" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock Text="Keeps FloatView running silently in the system tray when dashboard is closed." Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <CheckBox x:Name="ChkMinimizeToTray" Grid.Column="1" IsChecked="True" VerticalAlignment="Center" Click="OnMinimizeToTrayToggled" />
+                    </Grid>
+
+                    <!-- Minimum Playback Duration (Debounce) -->
+                    <Grid Margin="0,4,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="200" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Detection Debounce Duration" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock Text="Minimum seconds media must play before alerting (prevents seek/skip spam)." Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                            <Slider x:Name="SliderDebounce" Style="{StaticResource StyleSlider}" Width="120" Minimum="1" Maximum="5" Value="2" SmallChange="1" LargeChange="1" Margin="0,0,8,0" ValueChanged="OnDebounceChanged" />
+                            <TextBlock x:Name="TxtDebounceValue" Text="2s" Style="{StaticResource StyleCodeText}" Width="40" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Separator Background="{StaticResource BrushBorderSubtle}" Margin="0,8" />
+
+                    <!-- Companion Extension Setup -->
+                    <Grid Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Companion Chromium Extension" Style="{StaticResource StyleBodyText}" FontWeight="SemiBold" />
+                            <TextBlock x:Name="TxtExtensionStatus" Text="Local HTTP Bridge Port: 48123 (Ready) | Extension Folder: ./extension" Style="{StaticResource StyleCaptionText}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button x:Name="BtnRegisterHost" Style="{StaticResource BtnSecondary}" Content="Register Native Host" Click="OnRegisterHostClicked" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Section 6: Startup & Maintenance -->
             <Border Background="{StaticResource BrushBgCard}"
                     BorderBrush="{StaticResource BrushBorderSubtle}"
                     BorderThickness="1"

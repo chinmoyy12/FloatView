@@ -115,5 +115,49 @@ public class WindowPositionAndLayoutTests
 
         // Should be offscreen to the left except 10px strip
         Assert.Equal(_mockMonitor.WorkLeft - 480 + 10, leftHiddenX);
+
+        var (_, topHiddenY) = EdgeActivationService.GetHiddenCoordinates(
+            DockEdge.Top, _mockMonitor, 100, 100, 480, 270);
+        Assert.Equal(_mockMonitor.WorkTop - 270 + 10, topHiddenY);
+
+        var (_, bottomHiddenY) = EdgeActivationService.GetHiddenCoordinates(
+            DockEdge.Bottom, _mockMonitor, 100, 100, 480, 270);
+        Assert.Equal(_mockMonitor.WorkTop + _mockMonitor.WorkHeight - 10, bottomHiddenY);
+    }
+
+    [Fact]
+    public void MultiMonitor_NegativeCoordinates_SnappingAndDockingCalculationsAccurate()
+    {
+        // Secondary monitor positioned to the left of the primary display
+        var leftMonitor = new MonitorArea(
+            DeviceLeft: -1920, DeviceTop: 0, DeviceWidth: 1920, DeviceHeight: 1080,
+            WorkLeft: -1920, WorkTop: 0, WorkWidth: 1920, WorkHeight: 1040,
+            IsPrimary: false);
+
+        // 1. Edge docking on negative coordinate screen
+        var (dockedLeft, dockedTop) = EdgeActivationService.GetDockedCoordinates(
+            DockEdge.Left, leftMonitor, -1500, 100, 480, 270);
+        Assert.Equal(-1920, dockedLeft);
+        Assert.Equal(100, dockedTop);
+
+        var (dockedRight, _) = EdgeActivationService.GetDockedCoordinates(
+            DockEdge.Right, leftMonitor, -1500, 100, 480, 270);
+        Assert.Equal(-1920 + 1920 - 480, dockedRight); // -480
+
+        // 2. Hidden coordinates on negative coordinate screen
+        var (hiddenLeft, _) = EdgeActivationService.GetHiddenCoordinates(
+            DockEdge.Left, leftMonitor, -1500, 100, 480, 270);
+        Assert.Equal(-1920 - 480 + 10, hiddenLeft); // -2390
+
+        var (hiddenRight, _) = EdgeActivationService.GetHiddenCoordinates(
+            DockEdge.Right, leftMonitor, -1500, 100, 480, 270);
+        Assert.Equal(-1920 + 1920 - 10, hiddenRight); // -10
+
+        // 3. Side-by-side arrangement on negative coordinate monitor
+        var slots = WindowPositionService.ArrangeSideBySide(leftMonitor, 2);
+        Assert.Equal(2, slots.Count);
+        Assert.True(slots[0].Left < 0);
+        Assert.True(slots[1].Right <= 0);
+        Assert.True(slots[0].Right <= slots[1].Left);
     }
 }

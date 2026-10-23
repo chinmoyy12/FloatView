@@ -109,22 +109,8 @@ public partial class NotesView : UserControl
 
         if (sfd.ShowDialog() == true)
         {
-            var sb = new StringBuilder();
-            sb.AppendLine("# FloatView Study Notes & Captions");
-            sb.AppendLine($"Exported: {DateTime.Now:f}\n");
-
-            foreach (var note in _notes)
-            {
-                sb.AppendLine($"### [{note.FormattedTimestamp}] {note.PageTitle}");
-                sb.AppendLine($"- **Source**: {note.Url}");
-                if (!string.IsNullOrWhiteSpace(note.ExtractedCaption))
-                {
-                    sb.AppendLine($"- **Caption**: *\"{note.ExtractedCaption}\"*");
-                }
-                sb.AppendLine($"- **Note**: {note.NoteText}\n");
-            }
-
-            File.WriteAllText(sfd.FileName, sb.ToString());
+            var markdown = CaptionNote.ExportToMarkdown(_notes);
+            File.WriteAllText(sfd.FileName, markdown, Encoding.UTF8);
             MessageBox.Show($"Exported {_notes.Count} notes to {sfd.FileName}", "FloatView", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }

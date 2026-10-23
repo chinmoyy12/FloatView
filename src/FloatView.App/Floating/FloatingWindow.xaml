@@ -76,9 +76,10 @@
                                 Visibility="Collapsed"
                                 Background="{StaticResource BrushWarning}"
                                 CornerRadius="4"
-                                Padding="4,1"
-                                Margin="6,0,0,0">
-                            <TextBlock Text="PASSTHROUGH" FontSize="9" FontWeight="Bold" Foreground="#000000" />
+                                Padding="5,1"
+                                Margin="6,0,0,0"
+                                ToolTip="Mouse passthrough active. Press Ctrl+Alt+K to disable click-through.">
+                            <TextBlock Text="PASSTHROUGH (Ctrl+Alt+K)" FontSize="9" FontWeight="Bold" Foreground="#000000" />
                         </Border>
                     </StackPanel>
 

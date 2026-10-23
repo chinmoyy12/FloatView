@@ -6,7 +6,7 @@
 [![Release](https://img.shields.io/badge/Release-v1.0.0-7928CA?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/chinmoyy12/FloatView/releases/tag/v1.0.0)
 [![.NET](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Windows](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011%20x64-0078D6?style=for-the-badge&logo=windows11&logoColor=white)](https://www.microsoft.com/windows)
-[![Tests](https://img.shields.io/badge/Tests-31%20Passed%20(100%25)-success?style=for-the-badge&logo=checkmarx&logoColor=white)](https://github.com/chinmoyy12/FloatView/actions)
+[![Tests](https://img.shields.io/badge/Tests-65%20Passed%20(100%25)-success?style=for-the-badge&logo=checkmarx&logoColor=white)](https://github.com/chinmoyy12/FloatView/actions)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 <br/>
@@ -68,7 +68,17 @@
 
 ## ✨ Features at a Glance
 
-### 🪟 1. Universal Borderless Float Mode
+### 🚀 1. Smart Media Detection (Detect, Select, Float)
+- **Background Watcher**: FloatView runs quietly in the Windows background and system tray, monitoring media playback across Google Chrome, Microsoft Edge, Brave, and Firefox.
+- **Dual-Layer Detection Strategy**:
+  - **High-Fidelity Extension**: Captures exact video title, canonical URL, elapsed timestamp, and duration via Chromium MV3 companion extension.
+  - **Windows Core Audio (WASAPI) Fallback**: Uses `IAudioSessionManager2` and `IAudioMeterInformation` to detect media audio sessions and map PIDs to browser windows out of the box with zero configuration!
+- **Unobtrusive Toast**: Shows an elegant notification `[ Use FloatView ]` or `[ Not now ]` when media plays for at least 2 seconds (debounced).
+- **One-Click Float**: Selecting a detected candidate in the **"Choose what to float"** selector immediately initiates playback in a floating window—no secondary confirmation needed.
+- **Safe Media Handoff**: Synchronizes timestamps (`#t=125s`) and automatically pauses the source browser tab only after the destination float confirms playback.
+- **Full Documentation**: See [Setup Guide](SMART_MEDIA_DETECTION_SETUP.md), [Architecture Specification](SMART_MEDIA_DETECTION_IMPLEMENTATION.md), and [Test Report](SMART_MEDIA_DETECTION_TEST_REPORT.md).
+
+### 🪟 2. Universal Borderless Float Mode
 - **Always-on-Top Precision**: Hardware-accelerated WPF borderless windows layered over fullscreen games and IDEs.
 - **Three One-Click Presets**:
   - `Ultra-Mini`: 320 × 180 compact media widget.
@@ -160,7 +170,7 @@ cd FloatView
 powershell -ExecutionPolicy Bypass -File scripts\build.ps1
 ```
 
-### 3. Run Test Suite (31 Unit Tests)
+### 3. Run Test Suite (65 Unit Tests)
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\test.ps1
 ```
@@ -183,17 +193,19 @@ Output installer: `installer\output\FloatView-Setup-v1.0.0.exe`
 
 ```
 FloatView/
+├── extension/             # Companion Chromium MV3 Extension (Chrome & Edge)
 ├── src/FloatView.App/
-│   ├── Platform/          # Win32 User32/DWM, WASAPI Core Audio, Displays, Startup
+│   ├── Platform/          # Win32 User32/DWM, WASAPI Audio Sessions & Meter, System Tray
 │   ├── Browser/           # WebView2 Environment, Media Detection, Deep Player Hooks
 │   ├── Floating/          # FloatingWindow, WindowManager, EdgeActivation, Snapping
-│   ├── Media/             # GlobalHotkeys, AudioVisualizer (Hardware WASAPI Meter)
+│   ├── Media/             # SmartMediaCoordinator, BrowserBridgeService, GlobalHotkeys
+│   ├── Notifications/     # MediaDetectedNotificationWindow (Toast Prompt)
 │   ├── Palette/           # Spotlight Command Palette Window (Alt + Space)
 │   ├── Privacy/           # Privacy Shield Request Filter & Allowlist Store
 │   ├── Focus/             # Monotonic Pomodoro Session Engine
 │   ├── Persistence/       # Atomic File Swaps (settings, workspaces, notes)
-│   └── Views/             # Dashboard, Browser, Workspaces, Notes, Privacy, Settings
-├── tests/FloatView.Tests/ # 31 Automated Unit Tests (xUnit)
+│   └── Views/             # Dashboard, Browser, Workspaces, Notes, Privacy, Settings, MediaPicker
+├── tests/FloatView.Tests/ # 65 Automated Unit Tests (xUnit)
 ├── installer/             # Inno Setup Script (FloatView.iss)
 └── scripts/               # PowerShell Build, Test, Publish, Package Automations
 ```

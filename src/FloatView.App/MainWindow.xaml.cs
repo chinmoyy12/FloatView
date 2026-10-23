@@ -1,16 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using FloatView.App.Floating;
 using FloatView.App.Focus;
 using FloatView.App.Media;
 using FloatView.App.Models;
+using FloatView.App.Notifications;
 using FloatView.App.Palette;
 using FloatView.App.Persistence;
 using FloatView.App.Platform;
 using FloatView.App.Privacy;
+using FloatView.App.Views;
 
 namespace FloatView.App;
 
@@ -22,6 +25,13 @@ public partial class MainWindow : Window
     private readonly FloatingWindowManager _windowManager;
     private readonly FocusSessionService _focusService;
     private readonly GlobalHotkeyService _hotkeyService;
+    private readonly BrowserBridgeService _browserBridge;
+    private readonly AudioSessionWatcher _audioWatcher;
+    private readonly SmartMediaCoordinator _smartCoordinator;
+    private readonly TrayIconService _trayService;
+
+    private MediaDetectedNotificationWindow? _activeNotification;
+    private bool _forceShutdown = false;
 
     public MainWindow()
     {
@@ -34,6 +44,11 @@ public partial class MainWindow : Window
             _settingsService.Settings.FocusDurationMinutes,
             _settingsService.Settings.FocusBreakDurationMinutes);
         _hotkeyService = new GlobalHotkeyService();
+
+        _browserBridge = new BrowserBridgeService();
+        _audioWatcher = new AudioSessionWatcher(autoStart: true);
+        _smartCoordinator = new SmartMediaCoordinator(_settingsService, _windowManager, _browserBridge, _audioWatcher);
+        _trayService = new TrayIconService(this);
 
         // Wire child views
         ViewDashboard.Initialize(_windowManager, _focusService, _settingsService);
@@ -53,6 +68,22 @@ public partial class MainWindow : Window
             });
         };
 
+        // Wire Smart Media Detection Notification
+        _smartCoordinator.NotificationRequested += candidate =>
+        {
+            Dispatcher.Invoke(() => ShowSmartMediaNotification(candidate));
+        };
+
+        // Wire Tray Icon Actions
+        _trayService.DoubleClicked += () =>
+        {
+            Dispatcher.Invoke(RestoreMainWindow);
+        };
+        _trayService.RightClicked += () =>
+        {
+            Dispatcher.Invoke(ShowTrayContextMenu);
+        };
+
         SwitchView(ViewDashboard);
 
         SourceInitialized += OnSourceInitialized;
@@ -68,6 +99,12 @@ public partial class MainWindow : Window
         // Register Global System-Wide Hotkeys
         _hotkeyService.Initialize(_hwnd);
         RegisterHotkeys();
+
+        // Initialize System Tray
+        _trayService.Initialize(_hwnd);
+
+        // Start Browser Bridge
+        _browserBridge.Start();
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -81,11 +118,20 @@ public partial class MainWindow : Window
 
     private void RegisterHotkeys()
     {
-        // Alt + Space: Command Palette
-        _hotkeyService.RegisterAction("CommandPalette", Key.Space, ctrl: false, alt: true, shift: false, win: false, () =>
+        // Alt + Space: Command Palette (with fallback to Ctrl + Alt + Space if contested)
+        bool registered = _hotkeyService.RegisterAction("CommandPalette", Key.Space, ctrl: false, alt: true, shift: false, win: false, () =>
         {
             Dispatcher.Invoke(ShowCommandPalette);
         });
+
+        if (!registered)
+        {
+            _hotkeyService.RegisterAction("CommandPaletteFallback", Key.Space, ctrl: true, alt: true, shift: false, win: false, () =>
+            {
+                Dispatcher.Invoke(ShowCommandPalette);
+            });
+            SettingsService.Log("Alt+Space conflict handled: registered Ctrl+Alt+Space fallback for Command Palette.");
+        }
 
         // Ctrl + Alt + F: Toggle all floats
         _hotkeyService.RegisterAction("ToggleAllFloats", Key.F, ctrl: true, alt: true, shift: false, win: false, () =>
@@ -105,6 +151,12 @@ public partial class MainWindow : Window
             Dispatcher.Invoke(() => _windowManager.ToggleClickThroughAll());
         });
 
+        // Ctrl + Alt + P: Media Play / Pause
+        _hotkeyService.RegisterAction("MediaPlayPause", Key.P, ctrl: true, alt: true, shift: false, win: false, () =>
+        {
+            Dispatcher.Invoke(async () => await _windowManager.TogglePlayPauseActiveAsync());
+        });
+
         // Ctrl + Alt + O: Focus Mode Toggle
         _hotkeyService.RegisterAction("FocusToggle", Key.O, ctrl: true, alt: true, shift: false, win: false, () =>
         {
@@ -112,11 +164,99 @@ public partial class MainWindow : Window
         });
     }
 
+    public void ShowSmartMediaNotification(MediaCandidate candidate)
+    {
+        if (_activeNotification != null)
+        {
+            try { _activeNotification.Close(); } catch { }
+        }
+
+        _activeNotification = new MediaDetectedNotificationWindow(
+            candidate,
+            onUseFloatView: cand =>
+            {
+                ShowMediaSourcePicker();
+            },
+            onDismiss: cand =>
+            {
+                _smartCoordinator.DismissCandidate(cand);
+            });
+
+        _activeNotification.Show();
+    }
+
+    public void ShowMediaSourcePicker()
+    {
+        var candidates = _smartCoordinator.ActiveCandidates;
+        var picker = new MediaSourcePickerWindow(candidates, async cand =>
+        {
+            await _smartCoordinator.InitiateFloatAsync(cand);
+        });
+        picker.ShowDialog();
+    }
+
+    public void RestoreMainWindow()
+    {
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    private void ShowTrayContextMenu()
+    {
+        var menu = new ContextMenu();
+
+        var itemOpen = new MenuItem { Header = "FloatView", FontWeight = FontWeights.Bold };
+        itemOpen.Click += (_, _) => RestoreMainWindow();
+        menu.Items.Add(itemOpen);
+
+        int count = _smartCoordinator.ActiveCandidates.Count;
+        var itemMedia = new MenuItem
+        {
+            Header = count > 0 ? $"Choose Media to Float ({count})..." : "Choose Media to Float..."
+        };
+        itemMedia.Click += (_, _) => ShowMediaSourcePicker();
+        menu.Items.Add(itemMedia);
+
+        menu.Items.Add(new Separator());
+
+        var itemSmartToggle = new MenuItem
+        {
+            Header = "Smart Media Detection",
+            IsCheckable = true,
+            IsChecked = _settingsService.Settings.SmartMediaDetectionEnabled
+        };
+        itemSmartToggle.Click += (_, _) =>
+        {
+            _settingsService.Settings.SmartMediaDetectionEnabled = itemSmartToggle.IsChecked;
+            _settingsService.SaveSettings(_settingsService.Settings);
+        };
+        menu.Items.Add(itemSmartToggle);
+
+        menu.Items.Add(new Separator());
+
+        var itemExit = new MenuItem { Header = "Exit FloatView" };
+        itemExit.Click += (_, _) =>
+        {
+            _forceShutdown = true;
+            Application.Current.Shutdown();
+        };
+        menu.Items.Add(itemExit);
+
+        _trayService.ShowContextMenu(menu);
+    }
+
     private void ShowCommandPalette()
     {
         var commands = new List<PaletteCommand>
         {
             new("New Floating Window", "Open default floating player", "Floating", () => _windowManager.OpenFloat()),
+            new("Choose Media to Float", "Open detected external browser media selector", "Media", ShowMediaSourcePicker),
+            new("Toggle Smart Media Detection", "Enable or disable external browser playback detection", "Media", () =>
+            {
+                _settingsService.Settings.SmartMediaDetectionEnabled = !_settingsService.Settings.SmartMediaDetectionEnabled;
+                _settingsService.SaveSettings(_settingsService.Settings);
+            }),
             new("Open: YouTube", "Watch videos in floating window", "Favorites", () => _windowManager.OpenFloat(new FloatingWindowConfig { Title = "YouTube", Url = "https://www.youtube.com", Preset = WindowPreset.Compact })),
             new("Open: YouTube Music", "Stream audio in ultra-mini float", "Favorites", () => _windowManager.OpenFloat(new FloatingWindowConfig { Title = "YouTube Music", Url = "https://music.youtube.com", Preset = WindowPreset.UltraMini })),
             new("Open: Twitch", "Watch live stream in cinema mode", "Favorites", () => _windowManager.OpenFloat(new FloatingWindowConfig { Title = "Twitch", Url = "https://www.twitch.tv", Preset = WindowPreset.Cinema })),
@@ -153,7 +293,11 @@ public partial class MainWindow : Window
                 SwitchView(ViewSettings);
             }),
             new("Close All Floating Windows", "Close all open floats and clear session", "Window", () => _windowManager.CloseAll()),
-            new("Quit FloatView", "Safely save session and exit", "App", () => Application.Current.Shutdown())
+            new("Quit FloatView", "Safely save session and exit", "App", () =>
+            {
+                _forceShutdown = true;
+                Application.Current.Shutdown();
+            })
         };
 
         var palette = new CommandPaletteWindow(commands);
@@ -186,13 +330,14 @@ public partial class MainWindow : Window
 
     private void OnCloseClicked(object sender, RoutedEventArgs e)
     {
-        // If floating windows are open, hide main window instead of terminating
-        if (_windowManager.ActiveCount > 0)
+        // If minimize to tray is enabled or floats are open, hide main window instead of terminating
+        if (_settingsService.Settings.MinimizeToTrayOnClose || _settingsService.Settings.SmartMediaDetectionEnabled || _windowManager.ActiveCount > 0)
         {
             Hide();
         }
         else
         {
+            _forceShutdown = true;
             Close();
         }
     }
@@ -225,6 +370,17 @@ public partial class MainWindow : Window
 
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        if (!_forceShutdown && (_settingsService.Settings.MinimizeToTrayOnClose || _settingsService.Settings.SmartMediaDetectionEnabled || _windowManager.ActiveCount > 0))
+        {
+            e.Cancel = true;
+            Hide();
+            return;
+        }
+
+        _trayService.Dispose();
+        _smartCoordinator.Dispose();
+        _browserBridge.Dispose();
+        _audioWatcher.Dispose();
         _hotkeyService.Dispose();
         _windowManager.CloseAll();
     }

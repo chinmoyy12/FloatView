@@ -113,6 +113,15 @@ public class FloatingWindowManager
         }
     }
 
+    public async System.Threading.Tasks.Task TogglePlayPauseActiveAsync()
+    {
+        var target = _activeWindows.LastOrDefault(w => w.IsActive) ?? _activeWindows.LastOrDefault();
+        if (target != null)
+        {
+            await target.TogglePlayPauseAsync();
+        }
+    }
+
     public void ArrangeSideBySide()
     {
         if (_activeWindows.Count == 0) return;

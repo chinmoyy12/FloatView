@@ -86,4 +86,58 @@ public class SettingsAndPersistenceTests : IDisposable
         var noteNegative = new CaptionNote { TimestampSeconds = -10 };
         Assert.Equal("00:00", noteNegative.FormattedTimestamp);
     }
+
+    [Fact]
+    public void CaptionNote_ExportToMarkdown_GeneratesValidMarkdownWithEscaping()
+    {
+        var notes = new List<CaptionNote>
+        {
+            new()
+            {
+                PageTitle = "C# 13 [Tutorial] Advanced",
+                Url = "https://youtube.com/watch?v=123",
+                TimestampSeconds = 125,
+                ExtractedCaption = "Memory *allocation* patterns in .NET",
+                NoteText = "Important performance note for high-throughput loops"
+            },
+            new()
+            {
+                PageTitle = "Study Lo-Fi Stream",
+                Url = "https://music.youtube.com",
+                TimestampSeconds = 3690,
+                ExtractedCaption = "",
+                NoteText = "Great study track"
+            }
+        };
+
+        string md = CaptionNote.ExportToMarkdown(notes);
+
+        Assert.Contains("# FloatView Study Notes & Captions", md);
+        Assert.Contains("### [02:05] C# 13 \\[Tutorial\\] Advanced", md);
+        Assert.Contains("- **Source**: https://youtube.com/watch?v=123", md);
+        Assert.Contains("- **Caption**: *\"Memory \\*allocation\\* patterns in .NET\"*", md);
+        Assert.Contains("- **Note**: Important performance note for high-throughput loops", md);
+        Assert.Contains("### [01:01:30] Study Lo-Fi Stream", md);
+    }
+
+    [Fact]
+    public void SettingsService_AtomicWrite_CreatesMissingDirectoriesAndOverwritesSafely()
+    {
+        string nestedPath = Path.Combine(_tempDir, "nested", "level2", "test_config.json");
+        var testModel = new WorkspaceModel { Id = "atomic_id", Name = "Atomic Test" };
+
+        SettingsService.AtomicWrite(nestedPath, testModel);
+
+        Assert.True(File.Exists(nestedPath));
+        string readJson = File.ReadAllText(nestedPath);
+        Assert.Contains("atomic_id", readJson);
+
+        // Test overwrite with updated data
+        testModel.Name = "Atomic Overwritten";
+        SettingsService.AtomicWrite(nestedPath, testModel);
+
+        string updatedJson = File.ReadAllText(nestedPath);
+        Assert.Contains("Atomic Overwritten", updatedJson);
+        Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(nestedPath)!, "*.tmp"));
+    }
 }
